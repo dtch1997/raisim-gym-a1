@@ -118,8 +118,8 @@ for update in range(1000000):
                 wait_time = cfg['environment']['control_dt'] - (frame_end-frame_start)
                 if wait_time > 0.:
                     time.sleep(wait_time)
-        observeMat = np.vstack(observeList)
-        actionMat = np.vstack(actionList)
+        observeMat = np.stack(observeList)
+        actionMat = np.stack(actionList)
         np.save(f'{saver.data_dir}/{str(update)}/observation.npy', observeMat)
         np.save(f'{saver.data_dir}/{str(update)}/action.npy', actionMat)
         if cfg['environment']['render']:
