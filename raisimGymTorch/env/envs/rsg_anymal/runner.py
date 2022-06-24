@@ -10,6 +10,7 @@ import raisimGymTorch.algo.ppo.module as ppo_module
 import raisimGymTorch.algo.ppo.ppo as PPO
 import torch.nn as nn
 import numpy as np
+import copy
 import torch
 import datetime
 import argparse
@@ -96,10 +97,10 @@ for update in range(1000000):
             'actor_distribution_state_dict': actor.distribution.state_dict(),
             'critic_architecture_state_dict': critic.architecture.state_dict(),
             'optimizer_state_dict': ppo.optimizer.state_dict(),
-        }, saver.data_dir+"/full_"+str(update)+'.pt')
+        }, f'{saver.data_dir}/{str(update)}/full.pt')
         # we create another graph just to demonstrate the save/load method
         loaded_graph = ppo_module.MLP(cfg['architecture']['policy_net'], nn.LeakyReLU, ob_dim, act_dim)
-        loaded_graph.load_state_dict(torch.load(saver.data_dir+"/full_"+str(update)+'.pt')['actor_architecture_state_dict'])
+        loaded_graph.load_state_dict(torch.load( f'{saver.data_dir}/{str(update)}/full.pt')['actor_architecture_state_dict'])
 
         env.turn_on_visualization()
         env.start_video_recording(datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S") + "policy_"+str(update)+'.mp4')

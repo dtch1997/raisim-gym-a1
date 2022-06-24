@@ -76,15 +76,15 @@ class RaisimGymVecEnv:
         return self._reward.copy(), self._done.copy()
 
     def load_scaling(self, dir_name, iteration):
-        mean_file_name = dir_name + "/mean" + str(iteration) + ".csv"
-        var_file_name = dir_name + "/var" + str(iteration) + ".csv"
+        mean_file_name = f"{dir_name}/{iteration}/mean.csv"
+        var_file_name = f"{dir_name}/{iteration}/var.csv"
         self.obs_rms.mean = np.loadtxt(mean_file_name, dtype=np.float32, delimiter=",")
         self.obs_rms.var = np.loadtxt(var_file_name, dtype=np.float32, delimiter=",")
         self.obs_rms.count = self.steps_per_iteration * int(iteration)
 
     def save_scaling(self, dir_name, iteration):
-        mean_file_name = dir_name + "/mean" + iteration + ".csv"
-        var_file_name = dir_name + "/var" + iteration + ".csv"
+        mean_file_name = f"{dir_name}/{iteration}/mean.csv"
+        var_file_name = f"{dir_name}/{iteration}/var.csv"
         np.savetxt(mean_file_name, self.obs_rms.mean, delimiter=",")
         np.savetxt(var_file_name, self.obs_rms.var, delimiter=",")
 

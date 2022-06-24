@@ -87,7 +87,6 @@ for update in range(1000000):
     env.reset()
     reward_ll_sum = 0
     done_sum = env.num_envs # at least we have (num_envs) trajectories
-    average_dones = 0.
 
     if update % cfg['environment']['eval_every_n'] == 0:
         print("Visualizing and evaluating the current policy")
@@ -96,13 +95,13 @@ for update in range(1000000):
             'actor_distribution_state_dict': actor.distribution.state_dict(),
             'critic_architecture_state_dict': critic.architecture.state_dict(),
             'optimizer_state_dict': ppo.optimizer.state_dict(),
-        }, saver.data_dir+"/full_"+str(update)+'.pt')
+        },f'{saver.data_dir}/{str(update)}/full.pt')
         # we create another graph just to demonstrate the save/load method
         loaded_graph = ppo_module.MLP(cfg['architecture']['policy_net'], nn.LeakyReLU, ob_dim, act_dim)
-        loaded_graph.load_state_dict(torch.load(saver.data_dir+"/full_"+str(update)+'.pt')['actor_architecture_state_dict'])
+        loaded_graph.load_state_dict(torch.load(f'{saver.data_dir}/{str(update)}/full.pt')['actor_architecture_state_dict'])
 
         env.turn_on_visualization()
-        env.start_video_recording(datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S") + "policy_"+str(update)+'.mp4')
+        env.start_video_recording(f'{saver.data_dir}/{str(update)}/train_policy.mp4')
 
         for step in range(n_steps*2):
             with torch.no_grad():
