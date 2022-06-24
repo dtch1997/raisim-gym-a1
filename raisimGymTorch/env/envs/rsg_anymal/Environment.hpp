@@ -103,6 +103,7 @@ class ENVIRONMENT : public RaisimGymEnv {
     rewards_.record("torque", anymal_->getGeneralizedForce().squaredNorm());
     rewards_.record("forwardVel", std::min(4.0, bodyLinearVel_[0]));
 
+    /// \todo: return target velocity to world frame
     /// \todo: add height stability reward;
     /// \todo: add body posture stability reward;
     /// \todo: add phase indicator and gait pattern;
