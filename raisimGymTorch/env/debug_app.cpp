@@ -6,8 +6,6 @@
 #include "Environment.hpp"
 #include "VectorizedEnvironment.hpp"
 
-int THREAD_COUNT = 1;
-
 using namespace raisim;
 
 int main(int argc, char *argv[]) {
@@ -35,6 +33,7 @@ int main(int argc, char *argv[]) {
   }
   config_str.pop_back();
   VectorizedEnvironment<ENVIRONMENT> vecEnv(resourceDir, config_str);
+  vecEnv.init();
 
   Yaml::Node config;
   Yaml::Parse(config, config_str);

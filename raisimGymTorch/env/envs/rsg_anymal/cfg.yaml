@@ -3,18 +3,25 @@ record_video: yes
 
 environment:
   render: True
-# just testing commenting
   num_envs: 100
   eval_every_n: 200
   num_threads: 30
   simulation_dt: 0.0025
   control_dt: 0.01
+  step_freq: 0.25
   max_time: 4.0
+  mode: train
+  random_init: False
+  des_vel_x: 2.0
   reward:
     forwardVel:
+      type: linear
       coeff: 0.3
+      decay: 1.0
     torque:
+      type: linear
       coeff: -4e-5
+      decay: 1.0
 
 architecture:
   policy_net: [128, 128]

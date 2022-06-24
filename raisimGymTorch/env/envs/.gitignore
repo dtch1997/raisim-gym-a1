@@ -1,9 +1,10 @@
 # Ignore everything in repository root 
 /*
+.ipynb_checkpoints/*
 
 # Files to not ignore
 !/.gitignore
 !/some_other_files
 
 # Folder to not ignore
-!/rsg*/
+!/wk*/

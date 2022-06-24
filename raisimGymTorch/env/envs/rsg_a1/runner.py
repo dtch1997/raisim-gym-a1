@@ -37,7 +37,9 @@ home_path = task_path + "/../../../../.."
 cfg = YAML().load(open(task_path + "/cfg.yaml", 'r'))
 
 # create environment from the configuration file
-env = VecEnv(RaisimGymEnv(home_path + "/rsc", dump(cfg['environment'], Dumper=RoundTripDumper)))
+cfgDump = dump(cfg['environment'], Dumper=RoundTripDumper)
+impl = RaisimGymEnv(home_path + "/rsc", cfgDump)
+env = VecEnv(impl, cfg['environment'])
 
 # shortcuts
 ob_dim = env.num_obs
@@ -84,7 +86,7 @@ for update in range(1000000):
     start = time.time()
     env.reset()
     reward_ll_sum = 0
-    done_sum = 0
+    done_sum = env.num_envs # at least we have (num_envs) trajectories
     average_dones = 0.
 
     if update % cfg['environment']['eval_every_n'] == 0:
@@ -130,6 +132,8 @@ for update in range(1000000):
 
     # take st step to get value obs
     obs = env.observe()
+
+    endGather = time.time()
     ppo.update(actor_obs=obs, value_obs=obs, log_this_iteration=update % 10 == 0, update=update)
     average_ll_performance = reward_ll_sum / total_steps
     average_dones = done_sum / total_steps
@@ -141,14 +145,12 @@ for update in range(1000000):
     # curriculum update. Implement it in Environment.hpp
     env.curriculum_callback()
 
-    end = time.time()
+    endTrain = time.time()
 
-    print('----------------------------------------------------')
-    print('{:>6}th iteration'.format(update))
-    print('{:<40} {:>6}'.format("average ll reward: ", '{:0.10f}'.format(average_ll_performance)))
-    print('{:<40} {:>6}'.format("dones: ", '{:0.6f}'.format(average_dones)))
-    print('{:<40} {:>6}'.format("time elapsed in this iteration: ", '{:6.4f}'.format(end - start)))
-    print('{:<40} {:>6}'.format("fps: ", '{:6.0f}'.format(total_steps / (end - start))))
-    print('{:<40} {:>6}'.format("real time factor: ", '{:6.0f}'.format(total_steps / (end - start)
-                                                                       * cfg['environment']['control_dt'])))
-    print('----------------------------------------------------\n')
+    print(f"Iter: {update},  Avg Rwd: {reward_ll_sum/done_sum:.4f}, Termination Cnt: {done_sum}, " +
+          f"Time(Gather-Train): {endGather - start:.2f}-{endTrain - endGather:.2f}s")
+
+    ppo.writer.add_scalar('performance/reward_per_traj', reward_ll_sum/done_sum, update)
+    ppo.writer.add_scalar('performance/overall term', done_sum, update)
+    ppo.writer.add_scalar('performance/fps', total_steps / (endTrain - start), update)
+    ppo.writer.add_scalar('performance/time_factor', total_steps / (endTrain - start) * cfg['environment']['control_dt'], update)

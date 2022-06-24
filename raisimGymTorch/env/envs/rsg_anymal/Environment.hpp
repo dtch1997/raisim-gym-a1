@@ -57,7 +57,7 @@ class ENVIRONMENT : public RaisimGymEnv {
     actionStd_.setConstant(0.3);
 
     /// Reward coefficients
-    rewards_.initializeFromConfigurationFile (cfg["reward"]);
+    rewards_.initFromCfg (cfg["reward"]);
 
     /// indices of links that should not make contact with ground
     footIndices_.insert(anymal_->getBodyIdx("LF_SHANK"));

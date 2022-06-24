@@ -24,8 +24,6 @@ PYBIND11_MODULE(RAISIMGYM_TORCH_ENV_NAME, m) {
     .def("reset", &VectorizedEnvironment<ENVIRONMENT>::reset)
     .def("observe", &VectorizedEnvironment<ENVIRONMENT>::observe)
     .def("step", &VectorizedEnvironment<ENVIRONMENT>::step)
-    .def("setSeed", &VectorizedEnvironment<ENVIRONMENT>::setSeed)
-    .def("rewardInfo", &VectorizedEnvironment<ENVIRONMENT>::getRewardInfo)
     .def("close", &VectorizedEnvironment<ENVIRONMENT>::close)
     .def("isTerminalState", &VectorizedEnvironment<ENVIRONMENT>::isTerminalState)
     .def("setSimulationTimeStep", &VectorizedEnvironment<ENVIRONMENT>::setSimulationTimeStep)
@@ -38,24 +36,13 @@ PYBIND11_MODULE(RAISIMGYM_TORCH_ENV_NAME, m) {
     .def("stopRecordingVideo", &VectorizedEnvironment<ENVIRONMENT>::stopRecordingVideo)
     .def("startRecordingVideo", &VectorizedEnvironment<ENVIRONMENT>::startRecordingVideo)
     .def("curriculumUpdate", &VectorizedEnvironment<ENVIRONMENT>::curriculumUpdate)
-    .def("getObStatistics", &VectorizedEnvironment<ENVIRONMENT>::getObStatistics)
-    .def("setObStatistics", &VectorizedEnvironment<ENVIRONMENT>::setObStatistics)
-    .def(py::pickle(
-        [](const VectorizedEnvironment<ENVIRONMENT> &p) { // __getstate__ --> Pickling to Python
-            /* Return a tuple that fully encodes the state of the object */
-            return py::make_tuple(p.getResourceDir(), p.getCfgString());
-        },
-        [](py::tuple t) { // __setstate__ - Pickling from Python
-            if (t.size() != 2) {
-              throw std::runtime_error("Invalid state!");
-            }
-
-            /* Create a new C++ instance */
-            VectorizedEnvironment<ENVIRONMENT> p(t[0].cast<std::string>(), t[1].cast<std::string>());
-
-            return p;
-        }
-    ));
+    .def("setCfg", &VectorizedEnvironment<ENVIRONMENT>::setCfg)
+    .def("setSeed", &VectorizedEnvironment<ENVIRONMENT>::setSeed)
+    .def("setMaxTime", &VectorizedEnvironment<ENVIRONMENT>::setMaxTime)
+    .def("startLogging", &VectorizedEnvironment<ENVIRONMENT>::startLogging)
+    .def("stopLogging", &VectorizedEnvironment<ENVIRONMENT>::stopLogging)
+    .def("logMetadata", &VectorizedEnvironment<ENVIRONMENT>::logMetadata)
+    .def("setBaseVelTarget", &VectorizedEnvironment<ENVIRONMENT>::setBaseVelTarget);
 
   py::class_<NormalSampler>(m, "NormalSampler")
     .def(py::init<int>(), py::arg("dim"))
