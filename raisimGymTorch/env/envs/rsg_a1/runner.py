@@ -62,7 +62,7 @@ actor = ppo_module.Actor(ppo_module.MLP(cfg['architecture']['policy_net'], nn.Le
 critic = ppo_module.Critic(ppo_module.MLP(cfg['architecture']['value_net'], nn.LeakyReLU, ob_dim, 1),
                            device)
 
-saver = ConfigurationSaver(log_dir=home_path + "/raisimGymTorch/data/"+task_name,
+saver = ConfigurationSaver(log_dir=home_path + "/rsmGymA1/data/"+task_name,
                            save_items=[task_path + "/cfg.yaml", task_path + "/Environment.hpp"])
 tensorboard_launcher(saver.data_dir+"/..")  # press refresh (F5) after the first ppo update
 
@@ -82,13 +82,10 @@ ppo = PPO.PPO(actor=actor,
 if mode == 'retrain':
     load_param(weight_path, env, actor, critic, ppo.optimizer, saver.data_dir)
 
+startExec = time.time()
 for update in range(1000000):
-    start = time.time()
-    env.reset()
-    reward_ll_sum = 0
-    done_sum = env.num_envs # at least we have (num_envs) trajectories
-
     if update % cfg['environment']['eval_every_n'] == 0:
+        os.mkdir(f'{saver.data_dir}/{str(update)}/')
         print("Visualizing and evaluating the current policy")
         torch.save({
             'actor_architecture_state_dict': actor.architecture.state_dict(),
@@ -96,31 +93,47 @@ for update in range(1000000):
             'critic_architecture_state_dict': critic.architecture.state_dict(),
             'optimizer_state_dict': ppo.optimizer.state_dict(),
         },f'{saver.data_dir}/{str(update)}/full.pt')
+        env.save_scaling(saver.data_dir, str(update))
         # we create another graph just to demonstrate the save/load method
         loaded_graph = ppo_module.MLP(cfg['architecture']['policy_net'], nn.LeakyReLU, ob_dim, act_dim)
         loaded_graph.load_state_dict(torch.load(f'{saver.data_dir}/{str(update)}/full.pt')['actor_architecture_state_dict'])
 
-        env.turn_on_visualization()
-        env.start_video_recording(f'{saver.data_dir}/{str(update)}/train_policy.mp4')
+        if cfg['environment']['render']:
+            env.turn_on_visualization()
+            env.start_video_recording(f'{saver.data_dir}/{str(update)}/train_policy.mp4')
 
-        for step in range(n_steps*2):
+        test_steps = n_steps*2 if update>20 else n_steps//2
+        observeList = []
+        actionList = []
+
+        for step in range(test_steps):
             with torch.no_grad():
                 frame_start = time.time()
                 obs = env.observe(False)
                 action_ll = loaded_graph.architecture(torch.from_numpy(obs).cpu())
                 reward_ll, dones = env.step(action_ll.cpu().detach().numpy())
+                observeList.append(obs)
+                actionList.append(action_ll.cpu().detach().numpy())
                 frame_end = time.time()
                 wait_time = cfg['environment']['control_dt'] - (frame_end-frame_start)
                 if wait_time > 0.:
                     time.sleep(wait_time)
-
-        env.stop_video_recording()
-        env.turn_off_visualization()
+        observeMat = np.vstack(observeList)
+        actionMat = np.vstack(actionList)
+        np.save(f'{saver.data_dir}/{str(update)}/observation.npy', observeMat)
+        np.save(f'{saver.data_dir}/{str(update)}/action.npy', actionMat)
+        if cfg['environment']['render']:
+            env.stop_video_recording()
+            env.turn_off_visualization()
 
         env.reset()
-        env.save_scaling(saver.data_dir, str(update))
 
     # actual training
+    start = time.time()
+    env.reset()
+    reward_ll_sum = 0
+    done_sum = env.num_envs # at least we have (num_envs) trajectories
+
     for step in range(n_steps):
         obs = env.observe()
         action = ppo.act(obs)
@@ -146,8 +159,8 @@ for update in range(1000000):
 
     endTrain = time.time()
 
-    print(f"Iter: {update},  Avg Rwd: {reward_ll_sum/done_sum:.4f}, Termination Cnt: {done_sum}, " +
-          f"Time(Gather-Train): {endGather - start:.2f}-{endTrain - endGather:.2f}s")
+    print(f"Iter: {update},  Avg Rwd: {reward_ll_sum/done_sum:.4f}, Traj Cnt: {done_sum}, " +
+          f"Time(Gather-Train): {endGather - start:.2f}-{endTrain - endGather:.2f}s, Tot Time: {endTrain-startExec:6.1f}s")
 
     ppo.writer.add_scalar('performance/reward_per_traj', reward_ll_sum/done_sum, update)
     ppo.writer.add_scalar('performance/overall term', done_sum, update)
