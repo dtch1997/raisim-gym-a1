@@ -48,31 +48,31 @@ namespace raisim {
       return rewards_[name].reward;
     }
 
-      void record(const std::string &name, float reward, float targ = 0., bool accumulate = false) {
-        RSFATAL_IF(rewards_.find(name) == rewards_.end(), name << " was not found in the configuration file");
-        RSFATAL_IF(isnan(reward), name << " is nan");
+    void record(const std::string &name, double reward, double targ = 0., bool accumulate = false) {
+      RSFATAL_IF(rewards_.find(name) == rewards_.end(), name << " was not found in the configuration file");
+      RSFATAL_IF(isnan(reward), name << " is nan");
 
-        if (!accumulate) rewards_[name].reward = 0.f;
-        if (rewards_[name].type == "linear") rewards_[name].reward += -reward * rewards_[name].coefficient;
-        else if (rewards_[name].type == "expMSE")
-          rewards_[name].reward += expMSE(name, reward - targ) * rewards_[name].coefficient;
-        else if (rewards_[name].type == "kernel")
-          rewards_[name].reward += kernel(name, reward, targ) * rewards_[name].coefficient;
-        else RSFATAL(name << " type unknown..");
-        rewards_[name].integral += rewards_[name].reward;
-      }
+      if (!accumulate) rewards_[name].reward = 0.f;
+      if (rewards_[name].type == "linear") rewards_[name].reward += -reward * rewards_[name].coefficient;
+      else if (rewards_[name].type == "expMSE")
+        rewards_[name].reward += expMSE(name, reward - targ) * rewards_[name].coefficient;
+      else if (rewards_[name].type == "kernel")
+        rewards_[name].reward += kernel(name, reward, targ) * rewards_[name].coefficient;
+      else RSFATAL(name << " type unknown..");
+      rewards_[name].integral += rewards_[name].reward;
+    }
 
-      void record(const std::string &name, Vec3 val, Vec3 targ=Eigen::Vector3d::Zero() , bool accumulate = false) {
-        RSFATAL_IF(rewards_.find(name) == rewards_.end(), name << " was not found in the configuration file");
-        RSFATAL_IF(val.hasNaN(), name << " has nan");
+    void record(const std::string &name, Vec3 val, Vec3 targ=Eigen::Vector3d::Zero() , bool accumulate = false) {
+      RSFATAL_IF(rewards_.find(name) == rewards_.end(), name << " was not found in the configuration file");
+      RSFATAL_IF(val.hasNaN(), name << " has nan");
 
-        if (!accumulate) rewards_[name].reward = 0.f;
-        if (rewards_[name].type == "linear") rewards_[name].reward += -sqrt(val.squaredNorm()) * rewards_[name].coefficient;
-        else if (rewards_[name].type == "expMSE")
-          rewards_[name].reward += exp(-rewards_[name].decay * (val - targ).squaredNorm()) * rewards_[name].coefficient;
-        else RSFATAL(name << " type unknown..");
-        rewards_[name].integral += rewards_[name].reward;
-      }
+      if (!accumulate) rewards_[name].reward = 0.f;
+      if (rewards_[name].type == "linear") rewards_[name].reward += -sqrt(val.squaredNorm()) * rewards_[name].coefficient;
+      else if (rewards_[name].type == "expMSE")
+        rewards_[name].reward += exp(-rewards_[name].decay * (val - targ).squaredNorm()) * rewards_[name].coefficient;
+      else RSFATAL(name << " type unknown..");
+      rewards_[name].integral += rewards_[name].reward;
+    }
 
     float sum() {
       float sum = 0.f;

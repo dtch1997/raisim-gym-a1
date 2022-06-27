@@ -31,8 +31,11 @@ ob_dim = env.num_obs
 act_dim = env.num_acts
 
 weight_path = args.weight
-iteration_number = weight_path.rsplit('/', 1)[1].split('_', 1)[1].rsplit('.', 1)[0]
 weight_dir = weight_path.rsplit('/', 1)[0] + '/'
+experiment_dir = weight_path.rsplit('/', 1)[0].rsplit('/', 1)[0] + '/'
+iteration_number = weight_path.rsplit('/', 1)[0].rsplit('/', 1)[1]
+
+print(weight_path, weight_dir, iteration_number)
 
 if weight_path == "":
     print("Can't find trained weight, please provide a trained weight with --weight switch\n")
@@ -51,7 +54,7 @@ else:
     loaded_graph = ppo_module.MLP(cfg['architecture']['policy_net'], torch.nn.LeakyReLU, ob_dim, act_dim)
     loaded_graph.load_state_dict(torch.load(weight_path)['actor_architecture_state_dict'])
 
-    env.load_scaling(weight_dir, int(iteration_number))
+    env.load_scaling(experiment_dir, int(iteration_number))
     env.turn_on_visualization()
 
     # max_steps = 1000000

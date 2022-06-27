@@ -40,7 +40,6 @@ cfg = YAML().load(open(task_path + "/cfg.yaml", 'r'))
 cfgDump = dump(cfg['environment'], Dumper=RoundTripDumper)
 impl = RaisimGymEnv(home_path + "/rsc", cfgDump)
 env = VecEnv(impl, cfg['environment'])
-
 # shortcuts
 ob_dim = env.num_obs
 act_dim = env.num_acts
@@ -65,6 +64,8 @@ critic = ppo_module.Critic(ppo_module.MLP(cfg['architecture']['value_net'], nn.L
 saver = ConfigurationSaver(log_dir=home_path + "/rsmGymA1/data/"+task_name,
                            save_items=[task_path + "/cfg.yaml", task_path + "/Environment.hpp"])
 tensorboard_launcher(saver.data_dir+"/..")  # press refresh (F5) after the first ppo update
+
+env.log_matedata(saver.data_dir+"/metadata.csv")
 
 ppo = PPO.PPO(actor=actor,
               critic=critic,
@@ -101,6 +102,7 @@ for update in range(1000000):
         if cfg['environment']['render']:
             env.turn_on_visualization()
             env.start_video_recording(f'{saver.data_dir}/{str(update)}/train_policy.mp4')
+        env.start_logging(f'{saver.data_dir}/{str(update)}/eval_log.csv')
 
         test_steps = n_steps*2 if update>20 else n_steps//2
         observeList = []
@@ -122,13 +124,13 @@ for update in range(1000000):
         actionMat = np.stack(actionList)
         np.save(f'{saver.data_dir}/{str(update)}/observation.npy', observeMat)
         np.save(f'{saver.data_dir}/{str(update)}/action.npy', actionMat)
+        env.stop_logging()
         if cfg['environment']['render']:
             env.stop_video_recording()
             env.turn_off_visualization()
 
         env.reset()
 
-    # actual training
     start = time.time()
     env.reset()
     reward_ll_sum = 0
@@ -146,6 +148,7 @@ for update in range(1000000):
     obs = env.observe()
 
     endGather = time.time()
+
     ppo.update(actor_obs=obs, value_obs=obs, log_this_iteration=update % 10 == 0, update=update)
     average_ll_performance = reward_ll_sum / total_steps
     average_dones = done_sum / total_steps

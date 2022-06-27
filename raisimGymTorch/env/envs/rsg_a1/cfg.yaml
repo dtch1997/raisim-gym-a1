@@ -8,20 +8,39 @@ environment:
   num_threads: 50
   simulation_dt: 0.0025
   control_dt: 0.01
-  step_freq: 0.25
   max_time: 8.0
-  mode: train
-  random_init: False
-  des_vel_x: 2.0
+
+  gait:
+    step_freq: 3.0
+    duty_cycle: 0.5
+    transition_threshold: 0.05
+    gait_type: trot
+
   reward:
-    forwardVel:
+    bVel:
       type: expMSE
-      coeff: 0.5
-      decay: 0.6
-    torque:
+      coeff: 0.4
+      decay: 5
+    bRot:
+      type: expMSE
+      coeff: 0.2
+      decay: 200
+    bHgt:
       type: expMSE
       coeff: 0.1
-      decay: 4e-5
+      decay: 500
+    torq:
+      type: expMSE
+      coeff: 0.1
+      decay: 1e-4
+    eVel: # end Effector's Velocity in World Frame
+      type: expMSE
+      coeff: 0.1
+      decay: 8
+    eFrc: #  end Effector's Contact Force with Ground
+      type: expMSE
+      coeff: 0.1
+      decay: 20
 
 architecture:
   policy_net: [128, 128]

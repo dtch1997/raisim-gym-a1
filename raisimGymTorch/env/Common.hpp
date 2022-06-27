@@ -16,6 +16,7 @@ using SeqRMajorMat=Eigen::Matrix<Eigen::Matrix<Dtype, -1, 1>, -1, -1, Eigen::Row
 
 typedef Eigen::Matrix<double, 2, 1> Vec2;
 typedef Eigen::Matrix<double, 3, 1> Vec3;
+typedef Eigen::Matrix<double, 4, 1> Vec4;
 typedef Eigen::Matrix<double, 6, 1> Vec6;
 typedef Eigen::Matrix<double, 6, 6> Mat6;
 typedef Eigen::Matrix<double, 3, 3> Mat3;

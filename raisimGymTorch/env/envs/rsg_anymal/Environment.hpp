@@ -78,7 +78,6 @@ class ENVIRONMENT : public RaisimGymEnv {
   void reset() final {
     anymal_->setState(gc_init_, gv_init_);
     updateObservation();
-    /// \todo: add multi-target crriculumn;
   }
 
   float step(const Eigen::Ref<EigenVec>& action) final {
@@ -90,7 +89,6 @@ class ENVIRONMENT : public RaisimGymEnv {
 
     anymal_->setPdTarget(pTarget_, vTarget_);
 
-    /// \todo: add external pushing;
 
     for(int i=0; i< int(control_dt_ / simulation_dt_ + 1e-10); i++){
       if(server_) server_->lockVisualizationServerMutex();
@@ -103,12 +101,6 @@ class ENVIRONMENT : public RaisimGymEnv {
     rewards_.record("torque", anymal_->getGeneralizedForce().squaredNorm());
     rewards_.record("forwardVel", std::min(4.0, bodyLinearVel_[0]));
 
-    /// \todo: return target velocity to world frame
-    /// \todo: add height stability reward;
-    /// \todo: add body posture stability reward;
-    /// \todo: add phase indicator and gait pattern;
-    /// \todo: add phase guided reward terms;
-    /// \todo: state logging interfaces;
 
     return rewards_.sum();
   }
@@ -122,7 +114,6 @@ class ENVIRONMENT : public RaisimGymEnv {
     bodyLinearVel_ = rot.e().transpose() * gv_.segment(0, 3);
     bodyAngularVel_ = rot.e().transpose() * gv_.segment(3, 3);
 
-    /// \todo: add randomizers;
 
     obDouble_ << gc_[2], /// body height
         rot.e().row(2).transpose(), /// body orientation
@@ -149,7 +140,6 @@ class ENVIRONMENT : public RaisimGymEnv {
   }
 
 
-  /// \todo: add metadata logging;
 
   void curriculumUpdate() { };
 
@@ -159,6 +149,8 @@ class ENVIRONMENT : public RaisimGymEnv {
   raisim::ArticulatedSystem* anymal_;
   Eigen::VectorXd gc_init_, gv_init_, gc_, gv_, pTarget_, pTarget12_, vTarget_;
   double terminalRewardCoeff_ = -10.;
+  double heightTarg;
+  Vec3 bVel_des;
   Eigen::VectorXd actionMean_, actionStd_, obDouble_;
   Eigen::Vector3d bodyLinearVel_, bodyAngularVel_;
   std::set<size_t> footIndices_;
