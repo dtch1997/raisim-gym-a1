@@ -44,7 +44,7 @@ if weight_path == "":
 else:
     print("Loaded weight from {}\n".format(weight_path))
     start = time.time()
-    env.set_vel_target(0, np.array([-0.5, 0, 0]))
+    env.set_vel_target(0, np.array([0.5, 0, 0]))
     env.reset()
     reward_ll_sum = 0
     done_sum = 0
@@ -60,11 +60,13 @@ else:
     env.load_scaling(experiment_dir, int(iteration_number))
     env.turn_on_visualization()
     env.start_video_recording(f"{weight_dir}/test_" + datetime.now().strftime("%d%m%y_%H%M%S") + ".mp4")
-    env.start_logging(f"{weight_dir}/test_log.csv")
+    env.start_logging(f"{weight_dir}/test_log_" + datetime.now().strftime("%d%m%y_%H%M%S") + ".csv")
 
     # max_steps = 1000000
     max_steps = 1000  # 10 secs
 
+    observeList = []
+    actionList = []
     for step in range(max_steps):
         time.sleep(0.01)
         obs = env.observe(False)
@@ -72,14 +74,12 @@ else:
         reward_ll, dones = env.step(action_ll.cpu().detach().numpy())
         reward_ll_sum = reward_ll_sum + reward_ll[0]
         if dones or step == max_steps - 1:
-            print('----------------------------------------------------')
-            print('{:<40} {:>6}'.format("average ll reward: ",
-                                        '{:0.10f}'.format(reward_ll_sum / (step + 1 - start_step_id))))
+            print('\n----------------------------------------------------')
+            print('{:<40} {:>6}'.format("average ll reward: ", '{:0.10f}'.format(reward_ll_sum)))
             print('{:<40} {:>6}'.format("time elapsed [sec]: ", '{:6.4f}'.format((step + 1 - start_step_id) * 0.01)))
-            print('----------------------------------------------------\n')
             start_step_id = step + 1
             reward_ll_sum = 0.0
-            env.set_vel_target(0, np.array([-0.5, 0, 0]))
+            env.set_vel_target(0, np.array([0.5, 0, 0]))
 
     env.turn_off_visualization()
     env.stop_logging()
