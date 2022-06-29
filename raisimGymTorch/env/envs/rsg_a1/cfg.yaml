@@ -11,10 +11,10 @@ environment:
   max_time: 8.0
 
   gait:
-    step_freq: 3.0
+    step_freq: 2.0
     duty_cycle: 0.5
     transition_threshold: 0.05
-    gait_type: bound
+    gait_type: trot
 
   reward:
     bVel:
