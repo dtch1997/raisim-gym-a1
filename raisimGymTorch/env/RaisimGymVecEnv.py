@@ -16,13 +16,13 @@ class RaisimGymVecEnv:
         self.wrapper.init()
         self.num_obs = self.wrapper.getObDim()
         self.num_acts = self.wrapper.getActionDim()
-        self.seq_len = int(cfg['control_dt']/cfg['simulation_dt'])
+        self.seq_len = int(cfg['control_dt'] / cfg['simulation_dt'])
         self._observation = np.zeros([self.num_envs, self.num_obs], dtype=np.float32)
         self.obs_rms = RunningMeanStd(shape=[self.num_obs])
         self._reward = np.zeros(self.num_envs, dtype=np.float32)
         self._done = np.zeros(self.num_envs, dtype=np.bool)
         self.rewards = [[] for _ in range(self.num_envs)]
-        self.steps_per_iteration = int(cfg['max_time']/cfg['control_dt']*self.num_envs)
+        self.steps_per_iteration = int(cfg['max_time'] / cfg['control_dt'] * self.num_envs)
 
     def seed(self, seed=None):
         self.wrapper.setSeed(seed)
@@ -33,8 +33,8 @@ class RaisimGymVecEnv:
     def set_command(self, command):
         self.wrapper.setCommand(command)
 
-    def set_vel_target(self, idx , vel):
-        self.wrapper.setBaseVelTarget(idx,vel)
+    def set_vel_target(self, idx, vel):
+        self.wrapper.setBaseVelTarget(idx, vel)
 
     def get_stat_info(self):
         return self.obs_rms.mean, self.obs_rms.var, self.obs_rms.count
@@ -167,7 +167,6 @@ class RunningMeanStd(object):
         self.update_from_moments(batch_mean, batch_var, batch_count)
 
     def update_from_moments(self, batch_mean, batch_var, batch_count):
-
         delta = batch_mean - self.mean
         tot_count = self.count + batch_count
 

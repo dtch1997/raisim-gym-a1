@@ -6,6 +6,7 @@
 #ifndef SRC_RAISIMGYMENV_HPP
 #define SRC_RAISIMGYMENV_HPP
 
+#include <utility>
 #include <vector>
 #include <memory>
 #include <unordered_map>
@@ -52,7 +53,8 @@ class RaisimGymEnv {
   void setMaxTime(double t) { max_time = t; }
   void setSimulationTimeStep(double dt) { simulation_dt_ = dt; world_->setTimeStep(dt); }
   void setControlTimeStep(double dt) { control_dt_ = dt; }
-  void setBaseVelTarget(Vec3 velTarg) { bVel_fin = velTarg; }
+  virtual void setBaseVelTarget(Vec3 velTarg) { bVel_fin = std::move(velTarg); randomVelFlag=false;}
+  void randomVelTarget() { randomVelFlag=true;}
   int getObDim() const { return obDim_; }
   int getActionDim() const { return actionDim_; }
   int getRefDim() const { return refDim_; }
@@ -93,7 +95,7 @@ class RaisimGymEnv {
  public:
   int envIdx = 0;
   int seqLen = 1;
-  bool logFlag = false, refFlag = false;
+  bool logFlag = false, refFlag = false, randomVelFlag=true;
   double max_time=1.0, curTime = 0;
   Vec3 bVel_fin;
   Eigen::VectorXd refVec;

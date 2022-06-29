@@ -18,6 +18,7 @@ namespace raisim {
         explicit ENVIRONMENT(const std::string &resourceDir, const Yaml::Node &cfg, bool visualizable) :
                 RaisimGymEnv(resourceDir, cfg), visualizable_(visualizable), normDist_(0, 1) {
 
+          randEng.seed(rd());
           /// create world
           world_ = std::make_unique<raisim::World>();
 
@@ -99,13 +100,17 @@ namespace raisim {
 
         void reset() final {
           a1_->setState(gc_init_, gv_init_);
-
-          std::uniform_real_distribution<double> randNorm(0, 1);
-          double spdDec = randNorm(randEng);
-          if (spdDec < 0.1) bVel_fin[0] = 0.0;
-          else if (spdDec < 0.3) bVel_fin[0] = 0.7;
-          else if (spdDec < 0.6) bVel_fin[0] = 1.4;
-          else bVel_fin[0] = 2.0;
+          if (randomVelFlag) {
+            bVel_fin.setZero();
+            std::uniform_real_distribution<double> randNorm(0, 1);
+            std::mt19937 gen(rd());
+            double spdDec = randNorm(randEng);
+            if (spdDec < 0.1) bVel_fin[0] = 0.0;
+            else if (spdDec < 0.3) bVel_fin[0] = 0.7;
+            else if (spdDec < 0.6) bVel_fin[0] = 1.4;
+            else bVel_fin[0] = 2.0;
+            std::cout << "Generated Vel Targ "<<bVel_fin.transpose()<<" with "<<spdDec<<std::endl;
+          }
           bVel_des[0] = 0.;
           accMax = 0.6 * control_dt_;
           world_->setWorldTime(0.0);
@@ -159,7 +164,7 @@ namespace raisim {
           raisim::quatToRotMat(quat, rot);
           bodyLinearVel_ = rot.e().transpose() * gv_.segment(0, 3);
           bodyAngularVel_ = rot.e().transpose() * gv_.segment(3, 3);
-          if (abs(bVel_des[0] - bVel_fin[0]) > 1e-3) bVel_des[0] += sign(bVel_fin[0] - bVel_des[0]) * accMax;
+          if (abs(bVel_des[0] - bVel_fin[0]) > 1e-3) bVel_des[0] += (bVel_fin - bVel_des).cwiseSign()[0] * accMax;
 
           /// \todo: add randomizers;
 
@@ -285,6 +290,8 @@ namespace raisim {
           }
           return cnctFlagVec;
         }
+
+        void setBaseVelTarget(Vec3 velTarg) { bVel_fin = velTarg; randomVelFlag=false;}
 
         /// \todo: add metadata logging;
         void curriculumUpdate() {};

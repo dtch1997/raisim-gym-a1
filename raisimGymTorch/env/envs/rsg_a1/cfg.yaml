@@ -14,7 +14,7 @@ environment:
     step_freq: 3.0
     duty_cycle: 0.5
     transition_threshold: 0.05
-    gait_type: trot
+    gait_type: bound
 
   reward:
     bVel:
