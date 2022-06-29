@@ -7,7 +7,7 @@ import torch
 
 class ConfigurationSaver:
     def __init__(self, log_dir, save_items):
-        self._data_dir = log_dir + '/' + datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
+        self._data_dir = log_dir + '/' + datetime.datetime.now().strftime("%y%m%d-%H%M%S")
         os.makedirs(self._data_dir)
 
         if save_items is not None:
