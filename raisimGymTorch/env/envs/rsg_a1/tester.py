@@ -44,8 +44,8 @@ if weight_path == "":
 else:
     print("Loaded weight from {}\n".format(weight_path))
     start = time.time()
-    env.set_vel_target(0, np.array([0.5, 0, 0]))
     env.reset()
+    env.set_vel_target(0, np.array([0.5, 0, 0]))
     reward_ll_sum = 0
     done_sum = 0
     average_dones = 0.

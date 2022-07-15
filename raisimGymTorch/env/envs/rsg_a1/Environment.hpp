@@ -5,9 +5,17 @@
 
 #pragma once
 
-#include <stdlib.h>
+#include <cstdlib>
 #include <set>
 #include "../../RaisimGymEnv.hpp"
+
+#define PRINT_INFO true
+
+#if PRINT_INFO
+#define RSG_INFO(x) if(envIdx==0)std::cout<<x<<std::endl
+#else
+#define RSG_INFO(x) {}
+#endif
 
 namespace raisim {
 
@@ -29,8 +37,8 @@ namespace raisim {
           world_->addGround();
 
           /// get robot data
-          gcDim_ = a1_->getGeneralizedCoordinateDim();
-          gvDim_ = a1_->getDOF();
+          gcDim_ = (int)a1_->getGeneralizedCoordinateDim();
+          gvDim_ = (int)a1_->getDOF();
           nJoints_ = gvDim_ - 6;
 
           /// initialize containers
@@ -43,8 +51,7 @@ namespace raisim {
           pTarget12_.setZero(nJoints_);
 
           /// this is nominal configuration of a1
-          gc_init_
-                  << 0, 0, 0.29, 1.0, 0.0, 0.0, 0.0, -0.1, 0.75, -1.6, 0.1, 0.75, -1.6, -0.1, 0.75, -1.6, 0.1, 0.75, -1.6;
+          gc_init_ << 0, 0, 0.29, 1.0, 0.0, 0.0, 0.0, -0.1, 0.75, -1.6, 0.1, 0.75, -1.6, -0.1, 0.75, -1.6, 0.1, 0.75, -1.6;
 
           /// set pd gains
           Eigen::VectorXd jointPgain(gvDim_), jointDgain(gvDim_);
@@ -60,33 +67,25 @@ namespace raisim {
           heightTarget_ = gc_init_[2];
 
 
-          gaitFreq = cfg["gait"]["step_freq"].As<double>();
-          dutyCycle = cfg["gait"]["duty_cycle"].As<double>();
-          transRadius = cfg["gait"]["transition_threshold"].As<double>();
-          gaitType = cfg["gait"]["gait_type"].As<std::string>();
-          if (gaitType == gaitSet[0]) gaitOffset << 0.0, 0.5, 0.5, 0.;
-          else if (gaitType == gaitSet[1]) gaitOffset << 0.5, 0.5, 0., 0.;
-          else RSFATAL("Unimplemented Gait: " + gaitType)
-
           /// MUST BE DONE FOR ALL ENVIRONMENTS
           obDim_ = 38;
           actionDim_ = nJoints_;
           actionMean_.setZero(actionDim_);
           actionStd_.setZero(actionDim_);
           obDouble_.setZero(obDim_);
+          obRaw.setZero(obDim_);
 
           /// action scaling
           actionMean_ = gc_init_.tail(nJoints_);
           actionStd_.setConstant(0.3);
-
-          /// Reward coefficients
-          rewards_.initFromCfg(cfg["reward"]);
 
           /// indices of links that should not make contact with ground
           footIndices_.insert(a1_->getBodyIdx("FR_calf"));
           footIndices_.insert(a1_->getBodyIdx("FL_calf"));
           footIndices_.insert(a1_->getBodyIdx("RR_calf"));
           footIndices_.insert(a1_->getBodyIdx("RL_calf"));
+
+          loadConfiguration(cfg);
 
           /// visualize if it is the first environment
           if (visualizable_) {
@@ -96,20 +95,113 @@ namespace raisim {
           }
         }
 
+        void setCFG(Yaml::Node cfg) final {
+          cfg_ = cfg;
+          loadConfiguration(cfg);
+        }
+
+        void loadConfiguration(const Yaml::Node &cfg) {
+          rewards_.initFromCfg(cfg["reward"]);
+
+          gaitFreq = cfg["gait"]["step_freq"].As<double>();
+          dutyCycle = cfg["gait"]["duty_cycle"].As<double>();
+          transRadius = cfg["gait"]["transition_threshold"].As<double>();
+          maxVxCmd = cfg["gait"]["vel_x_max"].As<double>();
+
+          gaitType = cfg["gait"]["gait_type"].As<std::string>();
+          if (gaitType == gaitSet[0]) gaitOffset << 0.0, 0.5, 0.5, 0.;
+          else if (gaitType == gaitSet[1]) gaitOffset << 0.5, 0.5, 0., 0.;
+          else if (gaitType == gaitSet[2]) gaitOffset << 0.75, 0.5, 0.25, 0.;
+          else RSFATAL("Unimplemented Gait: " + gaitType)
+
+          randDynFlag = cfg["random"]["dynamics"]["enable"].As<bool>();
+          randStatFlag = cfg["random"]["state"]["enable"].As<bool>();
+          randExtFrcFlag = cfg["random"]["force_ext"]["enable"].As<bool>();
+          randVyFlag = cfg["random"]["hori_vel_target"]["enable"].As<bool>();
+
+          if (randDynFlag) {
+            inertiaRandRate = cfg["random"]["dynamics"]["link_inertia"].As<double>();
+            massRandRate = cfg["random"]["dynamics"]["link_mass"].As<double>();
+            comRandRate = cfg["random"]["dynamics"]["link_CoM"].As<double>();
+          }
+          if (randStatFlag) {
+            RSG_INFO("Activating Observation Noise");
+            obAmp.setZero(obDim_);
+            rpyNoise.setZero();
+            obAmp << 0.05,                    /// body height
+                    0.02, 0.02, 0.1,         /// body orientation
+                    0,0,0,0,0,0,0,0,0,0,0,0, /// joint angles
+                    0.1,0.1,0.2,             /// body linear velocity
+                    0.3,0.3,0.3,             /// body angular velocity
+                    0,0,0,                   /// desired linear velocity
+                    0,0,0,0,0,0,0,0,0,0,0,0, /// joint velocity
+                    0;                       /// phase indicator
+            rpyNoise << 0.15,0.15,0.15;
+          }
+          if (randExtFrcFlag) {
+            RSG_INFO("Activating External Force");
+            extFrcPeriod = cfg["random"]["force_ext"]["period"].As<double>();
+            extFrcValidTime = cfg["random"]["force_ext"]["effect"].As<double>();
+            extFrcRange.setZero();
+            extFrcRange[0] = cfg["random"]["force_ext"]["force_x"].As<double>();
+            extFrcRange[1] = cfg["random"]["force_ext"]["force_y"].As<double>();
+          }
+
+          if(randVyFlag){
+            maxVyCmd = cfg["random"]["hori_vel_target"]["vel_y_max"].As<double>();
+          }
+
+          std::uniform_real_distribution<double> randNorm(-1, 1);
+          if (randDynFlag) {
+            double mass;
+            raisim::Mat<3, 3> inertia{};
+            raisim::Vec<3> COM;
+            for (auto &bodyName: a1_->getBodyNames()) {
+              raisim::ArticulatedSystem::LinkRef linkTmp = a1_->getLink(bodyName);
+              mass = linkTmp.getWeight();
+              inertia = linkTmp.getInertia();
+              COM = linkTmp.getComPositionInParentFrame();
+              mass *= 1 + randNorm(randEng) * massRandRate;
+              for (int i = 0; i < 3; i++)
+                for (int j = i; j < 3; j++) {
+                  inertia(i, j) *= 1 + randNorm(randEng) * inertiaRandRate;
+                  inertia(j, i) = inertia(i, j);
+                }
+              for (int i = 0; i < 3; ++i) COM[i] *= 1 + randNorm(randEng) * comRandRate;
+              linkTmp.setWeight(mass);
+              linkTmp.setInertia(inertia);
+              linkTmp.setComPositionInParentFrame(COM);
+              RSG_INFO("Changed Mass to: "<<mass);
+            }
+          }
+        }
+
         void init() final {}
 
         void reset() final {
           a1_->setState(gc_init_, gv_init_);
+          bVel_fin.setZero();
           if (randomVelFlag) {
-            bVel_fin.setZero();
             std::uniform_real_distribution<double> randNorm(0, 1);
-            std::mt19937 gen(rd());
             double spdDec = randNorm(randEng);
             if (spdDec < 0.1) bVel_fin[0] = 0.0;
-            else if (spdDec < 0.3) bVel_fin[0] = 0.7;
-            else if (spdDec < 0.6) bVel_fin[0] = 1.4;
-            else bVel_fin[0] = 2.0;
-            std::cout << "Generated Vel Targ "<<bVel_fin.transpose()<<" with "<<spdDec<<std::endl;
+            else if (spdDec < 0.3) bVel_fin[0] = maxVxCmd / 3.;
+            else if (spdDec < 0.6) bVel_fin[0] = maxVxCmd * 2 / 3;
+            else bVel_fin[0] = maxVxCmd;
+            RSG_INFO("Randomized Vx: "<<bVel_fin[0]<<"using "<<spdDec);
+          }
+          if (randVyFlag){
+            std::uniform_real_distribution<double> randNorm(0, 1);
+            double spdDec = randNorm(randEng);
+            if (spdDec < 0.2) bVel_fin[1] = maxVyCmd;
+            else if (spdDec < 0.4) bVel_fin[1] = maxVyCmd / 2.;
+            else if (spdDec < 0.6) bVel_fin[1] = 0.;
+            else if (spdDec < 0.8) bVel_fin[1] = -maxVyCmd / 2.;
+            else bVel_fin[1] = -maxVyCmd;
+            RSG_INFO("Randomized Vy: "<<bVel_fin[1]<<"using "<<spdDec);
+          }
+          if(randExtFrcFlag){
+            a1_->clearExternalForcesAndTorques();
           }
           bVel_des[0] = 0.;
           accMax = 0.6 * control_dt_;
@@ -126,10 +218,33 @@ namespace raisim {
           pTarget12_ += actionMean_;
           pTarget_.tail(nJoints_) = pTarget12_;
 
-          /// \todo: add external pushing;
+
+          if(randExtFrcFlag) {
+            if (extFrcCnt <= 0) {
+              extFrcCnt = extFrcPeriod / control_dt_;    // cnt for disturbing force period
+              extFrcLastFlag = false;
+            }
+            extFrcCnt -= 1;
+            // generate disturbing force when enter disturbing time (distPeriod * distRatio)
+            // disturbing time is right-aligned with the period
+            if (extFrcCnt <= extFrcValidTime / control_dt_ && !extFrcLastFlag) {
+              extFrcLastFlag = true;
+              pushPos.setZero();
+              extFrc.setZero();
+
+              std::uniform_real_distribution<double> randNorm(-1, 1);
+              pushPos << randNorm(randEng) * 0.133, randNorm(randEng) * 0.097, randNorm(randEng) * 0.057;
+              extFrc << randNorm(randEng) * extFrcRange[0], randNorm(randEng) * extFrcRange[1], 0.;
+              RSG_INFO("Applying force: "<<extFrc.transpose());
+            }
+          }
 
           a1_->setPdTarget(pTarget_, vTarget_);
           for (int i = 0; i < int(control_dt_ / simulation_dt_ + 1e-10); i++) {
+            if (randExtFrcFlag && extFrcLastFlag)
+              a1_->setExternalForce(0, pushPos, extFrc);
+            else
+              a1_->clearExternalForcesAndTorques();
             if (server_) server_->lockVisualizationServerMutex();
             world_->integrate();
             if (server_) server_->unlockVisualizationServerMutex();
@@ -156,7 +271,7 @@ namespace raisim {
         void updateObservation() {
           a1_->getState(gc_, gv_);
           raisim::Vec<4> quat;
-          raisim::Mat<3, 3> rot;
+          raisim::Mat<3, 3> rot{};
           quat[0] = gc_[3];
           quat[1] = gc_[4];
           quat[2] = gc_[5];
@@ -166,15 +281,32 @@ namespace raisim {
           bodyAngularVel_ = rot.e().transpose() * gv_.segment(3, 3);
           if (abs(bVel_des[0] - bVel_fin[0]) > 1e-3) bVel_des[0] += (bVel_fin - bVel_des).cwiseSign()[0] * accMax;
 
-          /// \todo: add randomizers;
-
-          obDouble_ << gc_[2],                    /// body height
+          obRaw << gc_[2],                    /// body height
                   rot.e().row(2).transpose(),       /// body orientation
                   gc_.tail(12),                    /// joint angles
                   bodyLinearVel_, bodyAngularVel_,    /// body linear&angular velocity (in base frame, IMU measures in baseFrame)
                   rot.e().transpose() * bVel_des,     /// desired linear velocity in base frame
                   gv_.tail(12),                    /// joint velocity
                   phase;
+          if (randStatFlag){
+            std::uniform_real_distribution<double> randNorm(-1, 1);
+            double eul[3] = {0};
+            double quatArr[4] = {0};
+            raisim::Vec<4> quat;
+            raisim::Vec<3> rpyVec;
+            raisim::Mat<3, 3> rotNoisy{};
+            for(int i=0;i<4;i++) quatArr[i] = gc_[3+i];
+            raisim::quatToEulerVec(quatArr,eul);
+            for(int i=0;i<3;i++) rpyVec[i] = roundmod(eul[i] + rpyNoise[i]*randNorm(randEng));
+            raisim::rpyToRotMat_extrinsic(rpyVec,rotNoisy);
+            for(int i=0;i<obDim_;i++) obDouble_[i] = obRaw[i] + obAmp[i] * randNorm(randEng);
+            obDouble_.segment(1,3) = rotNoisy.e().row(2).transpose();
+            obDouble_.segment(22,3) = rotNoisy.e().transpose()*bVel_des;
+            RSG_INFO("Noised Observation: "<<obDouble_.transpose());
+            RSG_INFO("Raw Observation: "<<obRaw.transpose());
+          }
+          else
+            obDouble_ = obRaw;
         }
 
         void observe(Eigen::Ref<EigenVec> ob) final {
@@ -210,7 +342,7 @@ namespace raisim {
           } else RSWARN("log File Open Failed...")
         }
 
-        void logMetadata(std::string metaPath) {
+        void logMetadata(std::string metaPath) override {
           outFile.open(metaPath, std::ios::out | std::ios::app);
           if (outFile.is_open()) {
             outFile << "time";
@@ -231,7 +363,7 @@ namespace raisim {
         void updatePhaseIndicator() {
           phase += control_dt_ * gaitFreq;
           phase = fmod(phase, 1.0);
-          /// phase<dutyCycle: leg is supposed to be at swing state
+          /// phase<dutyCycle: leg is supposed to be swinging
           for (int i = 0; i < 4; i++) {
             double footPhase = fmod(phase + gaitOffset[i], 1.0);
             if (fabs(footPhase - dutyCycle) < transRadius)
@@ -291,10 +423,19 @@ namespace raisim {
           return cnctFlagVec;
         }
 
-        void setBaseVelTarget(Vec3 velTarg) { bVel_fin = velTarg; randomVelFlag=false;}
+        void setBaseVelTarget(Vec3 velTarg) {
+          bVel_fin = velTarg;
+          randomVelFlag = false;
+        }
 
-        /// \todo: add metadata logging;
         void curriculumUpdate() {};
+
+        double roundmod(double x){
+          double ret = x;
+          while (ret>M_1_PI) ret-=2* M_2_PI;
+          while (ret<-M_1_PI) ret+=2* M_2_PI;
+          return ret;
+        }
 
 
     private:
@@ -306,10 +447,11 @@ namespace raisim {
         double heightTarget_ = .3;
         double accMax = 1e-3;
 
-        double phase, gaitFreq, dutyCycle, transRadius = 0.1;
+        double phase{}, gaitFreq{}, dutyCycle{}, transRadius = 0.1;
+        double maxVxCmd = 0.6, maxVyCmd=0.;
         Vec4 gaitOffset, frcRwdWeight, spdRwdWeight;
         std::string gaitType;
-        const std::string gaitSet[2] = {"trot", "bound"};
+        const std::string gaitSet[3] = {"trot", "bound", "gallop"};
 
 
         Vec3 bVel_des, bVel_fin;
@@ -320,6 +462,16 @@ namespace raisim {
         /// these variables are not in use. They are placed to show you how to create a random number sampler.
         std::normal_distribution<double> normDist_;
         thread_local static std::mt19937 gen_;
+
+
+        double inertiaRandRate = 0, massRandRate = 0., comRandRate = 0.;
+        double extFrcPeriod{}, extFrcValidTime{}, extFrcCnt{};
+        bool randExtFrcFlag = false, randDynFlag = false, randStatFlag = false, extFrcLastFlag = false, randVyFlag{};
+
+        Eigen::VectorXd obRaw, obNoise, obAmp;
+        Vec3 rpyNoise;
+        Vec3 extFrcRange;
+        Vec3 pushPos, extFrc;
     };
 
     thread_local std::mt19937 raisim::ENVIRONMENT::gen_;

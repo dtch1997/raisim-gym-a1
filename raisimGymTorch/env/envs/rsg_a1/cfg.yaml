@@ -11,10 +11,29 @@ environment:
   max_time: 8.0
 
   gait:
-    step_freq: 2.0
+    step_freq: 3.0
     duty_cycle: 0.5
     transition_threshold: 0.05
     gait_type: trot
+    vel_x_max: 1.2
+
+  random:
+    state:
+      enable: True
+    push_force:
+      enable: True
+      period: 1.0
+      effect: 0.15
+      max_force_x: 0.5
+      max_force_y: 0.5
+    dynamics:
+      enable: True
+      link_CoM: 0.1
+      link_mass: 0.15
+      link_inertia: 0.2
+    hori_vel_target:
+      enable: True
+      vel_y_max: 0.6
 
   reward:
     bVel:

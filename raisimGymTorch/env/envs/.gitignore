@@ -7,4 +7,5 @@
 !/some_other_files
 
 # Folder to not ignore
-!/wk*/
+!/rsg*/
+/*/.ipynb_checkpoints/*

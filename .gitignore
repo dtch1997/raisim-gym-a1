@@ -8,6 +8,7 @@ _generate/
 .idea/*
 *.prof
 cmake-*/*
+cmake/*
 *.log
 *imgui.ini
 raisimGymTorch/env/data/*
