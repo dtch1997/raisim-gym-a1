@@ -42,7 +42,8 @@ PYBIND11_MODULE(RAISIMGYM_TORCH_ENV_NAME, m) {
     .def("startLogging", &VectorizedEnvironment<ENVIRONMENT>::startLogging)
     .def("stopLogging", &VectorizedEnvironment<ENVIRONMENT>::stopLogging)
     .def("logMetadata", &VectorizedEnvironment<ENVIRONMENT>::logMetadata)
-    .def("setBaseVelTarget", &VectorizedEnvironment<ENVIRONMENT>::setBaseVelTarget);
+    .def("setBaseVelTarget", &VectorizedEnvironment<ENVIRONMENT>::setBaseVelTarget)
+    .def("getBaseVelTarget", &VectorizedEnvironment<ENVIRONMENT>::getBaseVelTarget);
 
   py::class_<NormalSampler>(m, "NormalSampler")
     .def(py::init<int>(), py::arg("dim"))

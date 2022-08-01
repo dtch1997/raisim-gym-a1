@@ -3,15 +3,16 @@ record_video: yes
 
 environment:
   render: True
-  num_envs: 200
+  num_envs: 120
   eval_every_n: 50
   num_threads: 50
   simulation_dt: 0.0025
   control_dt: 0.01
   max_time: 8.0
+  reward_threshold: 700
 
   gait:
-    step_freq: 3.0
+    step_freq: 2.5
     duty_cycle: 0.5
     transition_threshold: 0.05
     gait_type: trot
@@ -19,9 +20,9 @@ environment:
 
   random:
     state:
-      enable: True
+      enable: False
     push_force:
-      enable: True
+      enable: False
       period: 1.0
       effect: 0.15
       max_force_x: 0.5
@@ -32,8 +33,8 @@ environment:
       link_mass: 0.15
       link_inertia: 0.2
     hori_vel_target:
-      enable: True
-      vel_y_max: 0.6
+      enable: False
+      vel_y_max: 0.4
 
   reward:
     bVel:

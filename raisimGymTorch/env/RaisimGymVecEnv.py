@@ -36,6 +36,9 @@ class RaisimGymVecEnv:
     def set_vel_target(self, idx, vel):
         self.wrapper.setBaseVelTarget(idx, vel)
 
+    def get_vel_target(self, idx):
+        return self.wrapper.getBaseVelTarget(idx)
+
     def get_stat_info(self):
         return self.obs_rms.mean, self.obs_rms.var, self.obs_rms.count
 
@@ -76,8 +79,8 @@ class RaisimGymVecEnv:
         return self._reward.copy(), self._done.copy()
 
     def load_scaling(self, dir_name, iteration):
-        mean_file_name = f"{dir_name}/{iteration}/mean.csv"
-        var_file_name = f"{dir_name}/{iteration}/var.csv"
+        mean_file_name = f"{dir_name}/mean.csv"
+        var_file_name = f"{dir_name}/var.csv"
         self.obs_rms.mean = np.loadtxt(mean_file_name, dtype=np.float32, delimiter=",")
         self.obs_rms.var = np.loadtxt(var_file_name, dtype=np.float32, delimiter=",")
         self.obs_rms.count = self.steps_per_iteration * int(iteration)

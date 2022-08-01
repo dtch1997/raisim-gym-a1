@@ -26,6 +26,7 @@ class PPO:
                  desired_kl=0.01,
                  use_clipped_value_loss=True,
                  log_dir='run',
+                 run_date = None,
                  device='cpu',
                  shuffle_batch=True):
 
@@ -58,7 +59,11 @@ class PPO:
         self.use_clipped_value_loss = use_clipped_value_loss
 
         # Log
-        self.log_dir = os.path.join(log_dir, datetime.now().strftime('%b%d_%H-%M-%S'))
+        if run_date == None:
+            self.run_date = datetime.now().strftime('%b%d_%H-%M-%S')
+        else:
+            self.run_date = run_date
+        self.log_dir = os.path.join(log_dir, self.run_date)
         self.writer = SummaryWriter(log_dir=self.log_dir, flush_secs=10)
         self.tot_timesteps = 0
         self.tot_time = 0
@@ -72,6 +77,9 @@ class PPO:
         self.actions = None
         self.actions_log_prob = None
         self.actor_obs = None
+
+    def get_writer_name(self):
+        return self.run_date
 
     def act(self, actor_obs):
         self.actor_obs = actor_obs

@@ -54,6 +54,7 @@ class RaisimGymEnv {
   void setSimulationTimeStep(double dt) { simulation_dt_ = dt; world_->setTimeStep(dt); }
   void setControlTimeStep(double dt) { control_dt_ = dt; }
   virtual void setBaseVelTarget(Vec3 velTarg) { bVel_fin = std::move(velTarg); randomVelFlag=false;}
+  Vec3 getBaseVelTarget() { return bVel_fin;}
   void randomVelTarget() { randomVelFlag=true;}
   int getObDim() const { return obDim_; }
   int getActionDim() const { return actionDim_; }

@@ -151,6 +151,11 @@ class VectorizedEnvironment {
     environments_[idx]->setBaseVelTarget(velTarg);
   }
 
+  Vec3 getBaseVelTarget(int idx){
+    RSFATAL_IF(idx>num_envs_, "envIdx Out of Bound when setting velocity")
+    return environments_[idx]->getBaseVelTarget();
+  }
+
   void setSimulationTimeStep(double dt) {
     for (auto *env: environments_)
       env->setSimulationTimeStep(dt);

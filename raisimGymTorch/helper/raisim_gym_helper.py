@@ -36,12 +36,14 @@ def load_param(weight_path, env, actor, critic, optimizer, data_dir):
         raise Exception("\nCan't find the pre-trained weight, please provide a pre-trained weight with --weight switch\n")
     print("\nRetraining from the checkpoint:", weight_path+"\n")
 
-    iteration_number = weight_path.rsplit('/', 1)[1].split('_', 1)[1].rsplit('.', 1)[0]
+    iteration_number = weight_path.rsplit('/', 2)[1]
     weight_dir = weight_path.rsplit('/', 1)[0] + '/'
+    exp_dir = weight_path.rsplit('/', 2)[0]+"/"
 
-    mean_csv_path = weight_dir + 'mean' + iteration_number + '.csv'
-    var_csv_path = weight_dir + 'var' + iteration_number + '.csv'
-    items_to_save = [weight_path, mean_csv_path, var_csv_path, weight_dir + "cfg.yaml", weight_dir + "Environment.hpp"]
+    mean_csv_path = weight_dir + 'mean.csv'
+    var_csv_path = weight_dir + 'var.csv'
+    items_to_save = [exp_dir+fil for fil in os.listdir(exp_dir) if fil.endswith(".yaml")]
+    items_to_save = items_to_save + [weight_path, mean_csv_path, var_csv_path,exp_dir + "/Environment.hpp"]
 
     if items_to_save is not None:
         pretrained_data_dir = data_dir + '/pretrained_' + weight_path.rsplit('/', 1)[0].rsplit('/', 1)[1]

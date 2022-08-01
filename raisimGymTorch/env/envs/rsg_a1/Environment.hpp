@@ -9,7 +9,7 @@
 #include <set>
 #include "../../RaisimGymEnv.hpp"
 
-#define PRINT_INFO true
+#define PRINT_INFO false
 
 #if PRINT_INFO
 #define RSG_INFO(x) if(envIdx==0)std::cout<<x<<std::endl
@@ -102,6 +102,7 @@ namespace raisim {
 
         void loadConfiguration(const Yaml::Node &cfg) {
           rewards_.initFromCfg(cfg["reward"]);
+          setMaxTime(cfg["max_time"].As<double>());
 
           gaitFreq = cfg["gait"]["step_freq"].As<double>();
           dutyCycle = cfg["gait"]["duty_cycle"].As<double>();
@@ -128,7 +129,7 @@ namespace raisim {
             RSG_INFO("Activating Observation Noise");
             obAmp.setZero(obDim_);
             rpyNoise.setZero();
-            obAmp << 0.05,                    /// body height
+            obAmp << 0.05,                   /// body height
                     0.02, 0.02, 0.1,         /// body orientation
                     0,0,0,0,0,0,0,0,0,0,0,0, /// joint angles
                     0.1,0.1,0.2,             /// body linear velocity
@@ -203,7 +204,7 @@ namespace raisim {
           if(randExtFrcFlag){
             a1_->clearExternalForcesAndTorques();
           }
-          bVel_des[0] = 0.;
+          bVel_des.setZero();
           accMax = 0.6 * control_dt_;
           world_->setWorldTime(0.0);
           phase = 0;
@@ -280,6 +281,7 @@ namespace raisim {
           bodyLinearVel_ = rot.e().transpose() * gv_.segment(0, 3);
           bodyAngularVel_ = rot.e().transpose() * gv_.segment(3, 3);
           if (abs(bVel_des[0] - bVel_fin[0]) > 1e-3) bVel_des[0] += (bVel_fin - bVel_des).cwiseSign()[0] * accMax;
+          if (abs(bVel_des[1] - bVel_fin[1]) > 1e-3) bVel_des[1] += (bVel_fin - bVel_des).cwiseSign()[1] * accMax/3;
 
           obRaw << gc_[2],                    /// body height
                   rot.e().row(2).transpose(),       /// body orientation
@@ -329,12 +331,20 @@ namespace raisim {
         void logData() {
           outFile.open(logPath, std::ios::out | std::ios::app);
           if (outFile.is_open()) {
+            double bEul[3] = {0};
+            double quat[4] = {0};
+            for (int i = 0; i < 4; i++) quat[i] = gc_[i+3];
+            quatToEulerVec(quat, bEul);
             outFile << world_->getWorldTime();
             for (int i = 0; i < gcDim_; i++) outFile << "," << gc_[i];
             for (int i = 0; i < gvDim_; i++) outFile << "," << gv_[i];
+            for (int i = 0; i < obDim_; i++) outFile << "," << obRaw[i];
             for (int i = 0; i < obDim_; i++) outFile << "," << obDouble_[i];
+            for (int i = 0; i < 3; i++) outFile << "," << bVel_fin[i];
+            for (int i = 0; i < 3; i++) outFile << "," << bVel_des[i];
             for (int i = 0; i < 4; i++) outFile << "," << spdRwdWeight[i];
             for (int i = 0; i < 4; i++) outFile << "," << frcRwdWeight[i];
+            for (int i = 0; i < 3; i++) outFile << "," << bEul[i];
             outFile << "," << phase;
             rewards_.logRewards(outFile);
             outFile << "\n";
@@ -348,9 +358,13 @@ namespace raisim {
             outFile << "time";
             for (int i = 0; i < gcDim_; i++) outFile << ",gc_[" << i << "]";
             for (int i = 0; i < gvDim_; i++) outFile << ",gv_[" << i << "]";
+            for (int i = 0; i < obDim_; i++) outFile << ",obRaw[" << i << "]";
             for (int i = 0; i < obDim_; i++) outFile << ",obDouble_[" << i << "]";
+            for (int i = 0; i < 3; i++) outFile << ",bVel_fin[" << i << "]";
+            for (int i = 0; i < 3; i++) outFile << ",bVel_des[" << i << "]";
             for (int i = 0; i < 4; i++) outFile << ",spdRwdWeight[" << i << "]";
             for (int i = 0; i < 4; i++) outFile << ",frcRwdWeight[" << i << "]";
+            for (int i = 0; i < 3; i++) outFile << ",baseRPY[" << i << "]";
             outFile << ",phase";
             rewards_.logMetadata(outFile);
             outFile << std::endl;
