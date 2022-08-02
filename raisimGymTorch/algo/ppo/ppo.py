@@ -28,7 +28,13 @@ class PPO:
                  log_dir='run',
                  run_date = None,
                  device='cpu',
-                 shuffle_batch=True):
+                 shuffle_batch=True,
+                 # WandB args
+                 use_wandb=False,
+                 project_name="raisim-locomotion",
+                 entity="mcx-lab",
+                 run_name=None,
+                ):
 
         # PPO components
         self.actor = actor
@@ -57,6 +63,20 @@ class PPO:
         self.lam = lam
         self.max_grad_norm = max_grad_norm
         self.use_clipped_value_loss = use_clipped_value_loss
+
+        # Weights and Biases
+        # This must be configured before creating SummaryWriter
+        self.use_wandb = use_wandb
+        if self.use_wandb:
+            import wandb
+            wandb.init(
+                project=project_name,
+                entity=entity,
+                sync_tensorboard=True,
+                config={},
+                name=run_name,
+                save_code=True,
+            )
 
         # Log
         if run_date == None:
