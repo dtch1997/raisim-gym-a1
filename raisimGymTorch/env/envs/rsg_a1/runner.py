@@ -21,6 +21,10 @@ task_name = "a1_locomotion"
 parser = argparse.ArgumentParser()
 parser.add_argument('-m', '--mode', help='set mode either train or test', type=str, default='train')
 parser.add_argument('-w', '--weight', help='pre-trained weight path', type=str, default='')
+parser.add_argument('--use-wandb', action='store_true')
+parser.add_argument('--project-name', type=str, default = 'raisim-locomotion')
+parser.add_argument('--entity-name', type=str, default='mcx-lab')
+parser.add_argument('--run-name', type=str, help="WandB run name", default='test')
 args = parser.parse_args()
 mode = args.mode
 weight_path = args.weight
@@ -76,6 +80,11 @@ ppo = PPO.PPO(actor=actor,
               device=device,
               log_dir=saver.data_dir,
               shuffle_batch=False,
+              # WandB args
+              use_wandb=args.use_wandb,
+              project_name=args.project_name,
+              entity=args.entity_name,
+              run_name=args.run_name,
               )
 
 if mode == 'retrain':
@@ -109,6 +118,10 @@ for update in range(1000000):
                       log_dir=saver.data_dir,
                       run_date=previous_writer_name,
                       shuffle_batch=False,
+                      use_wandb=args.use_wandb,
+                      project_name=args.project_name,
+                      entity=args.entity_name,
+                      run_name=args.run_name,
                       )
 
     if update % cfg['environment']['eval_every_n'] == 0:
