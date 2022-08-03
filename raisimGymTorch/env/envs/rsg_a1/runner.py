@@ -24,7 +24,7 @@ parser.add_argument('-w', '--weight', help='pre-trained weight path', type=str, 
 parser.add_argument('--use-wandb', action='store_true')
 parser.add_argument('--project-name', type=str, default = 'raisim-locomotion')
 parser.add_argument('--entity-name', type=str, default='mcx-lab')
-parser.add_argument('--run-name', type=str, help="WandB run name", default='test')
+parser.add_argument('--run-name', type=str, help="WandB run name", default='date')
 args = parser.parse_args()
 mode = args.mode
 weight_path = args.weight

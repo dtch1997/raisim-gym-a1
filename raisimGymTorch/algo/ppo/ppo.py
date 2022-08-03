@@ -26,7 +26,7 @@ class PPO:
                  desired_kl=0.01,
                  use_clipped_value_loss=True,
                  log_dir='run',
-                 run_date = None,
+                 run_date=None,
                  device='cpu',
                  shuffle_batch=True,
                  # WandB args
@@ -64,11 +64,18 @@ class PPO:
         self.max_grad_norm = max_grad_norm
         self.use_clipped_value_loss = use_clipped_value_loss
 
+        if run_date == None:
+            self.run_date = datetime.now().strftime('%b%d_%H-%M-%S')
+        else:
+            self.run_date = run_date
+
         # Weights and Biases
         # This must be configured before creating SummaryWriter
         self.use_wandb = use_wandb
         if self.use_wandb:
             import wandb
+            if run_name is None or run_name == 'date':
+                run_name = self.run_date
             wandb.init(
                 project=project_name,
                 entity=entity,
@@ -79,10 +86,6 @@ class PPO:
             )
 
         # Log
-        if run_date == None:
-            self.run_date = datetime.now().strftime('%b%d_%H-%M-%S')
-        else:
-            self.run_date = run_date
         self.log_dir = os.path.join(log_dir, self.run_date)
         self.writer = SummaryWriter(log_dir=self.log_dir, flush_secs=10)
         self.tot_timesteps = 0

@@ -17,6 +17,11 @@ Mainly features:
 - tensorboard
 - conda(optional)
 
+### Resource File
+if you are to use mini-cheetah environment, the URDF file have to be put into `$WORKSPACE/rsc`.
+
+You can find the zip file in the environment folder along with `Environment.hpp`. Remember to unzip.
+
 ### Run
 0. Install RaiSim as the instruction in [raisim webpage](https://raisim.com/sections/Installation.html)
 1. ```cd``` into repo folder (given that you have cloned it)
@@ -27,6 +32,8 @@ Mainly features:
 
 * Training results would be stored in `./raisimGymTorch/data/` by default, while video would be saved in `Screenshot` folder beside raisimUnity executable if you are using raisimUnity for rendering.
 
+* A1 environment and mini_cheetah environment have features of logging onto [WandB](https://wandb.ai/site). 
+Add argument of `--use-wandb`, `--project-name=<YOUR_PROJECT_NAME>` and `--run-name=<YOUR_EXPERIMENT_NAME>`
 ### Debugging
 1. Compile raisimGym with debug symbols: ```python setup develop --Debug```. This compiles <YOUR_APP_NAME>_debug_app
 2. Run it with Valgrind. I strongly recommend using Clion
