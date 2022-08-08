@@ -15,7 +15,7 @@ import datetime
 import argparse
 
 # task specification
-task_name = "a1_locomotion"
+task_name = "mini_cheetah_locomotion"
 
 # configuration
 parser = argparse.ArgumentParser()

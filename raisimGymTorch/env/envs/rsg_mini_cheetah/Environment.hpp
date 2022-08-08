@@ -31,7 +31,7 @@ namespace raisim {
           world_ = std::make_unique<raisim::World>();
 
           /// add objects
-          robot_ = world_->addArticulatedSystem(resourceDir_ + "/mini_cheetah/urdf/mini_cheetah.urdf");
+          robot_ = world_->addArticulatedSystem(resourceDir_ + "/mini_cheetah/urdf/mini_cheetah_rsm.urdf");
           robot_->setName("a1");
           robot_->setControlMode(raisim::ControlMode::PD_PLUS_FEEDFORWARD_TORQUE);
           world_->addGround();
