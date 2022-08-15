@@ -394,8 +394,13 @@ namespace raisim {
           for (auto &contact: robot_->getContacts()) {
             if (contact.skip()) continue; /// if the contact is internal, one contact point is set to 'skip'
             for (int i = 0; i < 4; i++)
-              if (shankBodyIdxs[i] == contact.getlocalBodyIndex())
+              if (shankBodyIdxs[i] == contact.getlocalBodyIndex()) {
+                if (isnan(contact.getImpulse().e().norm())) {RSINFO("Foot Frc " << i << " is Nan.")}
+                if (isinf(contact.getImpulse().e().norm())) {RSINFO("Foot Frc " << i << " is Inf.")}
+                if (isnan(frcRwdWeight[i])) {RSINFO("Frc Rwd Weight " << i << " is Nan.")}
+                if (isinf(frcRwdWeight[i])) {RSINFO("Frc Rwd Weight " << i << " is Inf.")}
                 sum += frcRwdWeight[i] * contact.getImpulse().e().norm() / simulation_dt_;
+              }
           }
           return sum;
 
@@ -408,18 +413,13 @@ namespace raisim {
                                      robot_->getFrameIdxByName("FL_foot_fixed"),
                                      robot_->getFrameIdxByName("RR_foot_fixed"),
                                      robot_->getFrameIdxByName("RL_foot_fixed")};
-          if (isnan(simulation_dt_)) {RSINFO("sim timestep is Nan.")}
-          if (isinf(simulation_dt_)) {RSINFO("sim timestep is Inf.")}
-          for (auto &contact: a1_->getContacts()) {
-            if (contact.skip()) continue; /// if the contact is internal, one contact point is set to 'skip'
-            for (int i = 0; i < 4; i++)
-              if (shankBodyIdxs[i] == contact.getlocalBodyIndex()) {
-                if (isnan(contact.getImpulse().e().norm())) {RSINFO("Foot Vel "<<i<<" is Nan.")}
-                if (isinf(contact.getImpulse().e().norm())) {RSINFO("Foot Vel "<<i<<" is Inf.")}
-                if (isnan(frcRwdWeight[i])) {RSINFO("Vel Rwd Weight "<<i<<" is Nan.")}
-                if (isinf(frcRwdWeight[i])) {RSINFO("Vel Rwd Weight "<<i<<" is Inf.")}
-                sum += frcRwdWeight[i] * contact.getImpulse().e().norm() / simulation_dt_;
-              }
+          for (int i = 0; i < 4; i++) {
+            robot_->getFrameVelocity(footFrameIdxs[i], endVel);
+            if (isnan(endVel.e().norm())) {RSINFO("Foot Vel " << i << " is Nan.")}
+            if (isinf(endVel.e().norm())) {RSINFO("Foot Vel " << i << " is Inf.")}
+            if (isnan(spdRwdWeight[i])) {RSINFO("Rwd Vel Weight " << i << " is Nan.")}
+            if (isinf(spdRwdWeight[i])) {RSINFO("Rwd Vel Weight " << i << " is Inf.")}
+            sum += spdRwdWeight[i] * endVel.e().norm();
           }
           return sum;
         }

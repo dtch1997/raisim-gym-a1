@@ -403,10 +403,10 @@ namespace raisim {
             if (contact.skip()) continue; /// if the contact is internal, one contact point is set to 'skip'
             for (int i = 0; i < 4; i++)
               if (shankBodyIdxs[i] == contact.getlocalBodyIndex()) {
-                if (isnan(contact.getImpulse().e().norm())) {RSINFO("Foot Vel "<<i<<" is Nan.")}
-                if (isinf(contact.getImpulse().e().norm())) {RSINFO("Foot Vel "<<i<<" is Inf.")}
-                if (isnan(frcRwdWeight[i])) {RSINFO("Vel Rwd Weight "<<i<<" is Nan.")}
-                if (isinf(frcRwdWeight[i])) {RSINFO("Vel Rwd Weight "<<i<<" is Inf.")}
+                if (isnan(contact.getImpulse().e().norm())) {RSINFO("Foot Frc "<<i<<" is Nan.")}
+                if (isinf(contact.getImpulse().e().norm())) {RSINFO("Foot Frc "<<i<<" is Inf.")}
+                if (isnan(frcRwdWeight[i])) {RSINFO("Frc Rwd Weight "<<i<<" is Nan.")}
+                if (isinf(frcRwdWeight[i])) {RSINFO("Frc Rwd Weight "<<i<<" is Inf.")}
                 sum += frcRwdWeight[i] * contact.getImpulse().e().norm() / simulation_dt_;
               }
           }
