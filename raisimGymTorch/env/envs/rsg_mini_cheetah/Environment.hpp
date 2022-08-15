@@ -271,30 +271,24 @@ namespace raisim {
 
         void updateObservation() {
           robot_->getState(gc_, gv_);
-          raisim::Vec<4> quat;
-          raisim::Mat<3, 3> rot{};
-          quat[0] = gc_[3];
-          quat[1] = gc_[4];
-          quat[2] = gc_[5];
-          quat[3] = gc_[6];
-          raisim::quatToRotMat(quat, rot);
-          bodyLinearVel_ = rot.e().transpose() * gv_.segment(0, 3);
-          bodyAngularVel_ = rot.e().transpose() * gv_.segment(3, 3);
+          Vec4 quat = gc_.segment(3, 4);
+          Mat3 rot;
+          quatToRotMat(quat, rot);
+          bodyLinearVel_ = rot.transpose() * gv_.segment(0, 3);
+          bodyAngularVel_ = rot.transpose() * gv_.segment(3, 3);
           if (abs(bVel_des[0] - bVel_fin[0]) > 1e-3) bVel_des[0] += (bVel_fin - bVel_des).cwiseSign()[0] * accMax;
           if (abs(bVel_des[1] - bVel_fin[1]) > 1e-3) bVel_des[1] += (bVel_fin - bVel_des).cwiseSign()[1] * accMax/3;
-
           obRaw << gc_[2],                    /// body height
-                  rot.e().row(2).transpose(),       /// body orientation
+                  rot.row(2).transpose(),       /// body orientation
                   gc_.tail(12),                    /// joint angles
                   bodyLinearVel_, bodyAngularVel_,    /// body linear&angular velocity (in base frame, IMU measures in baseFrame)
-                  rot.e().transpose() * bVel_des,     /// desired linear velocity in base frame
+                  rot.transpose() * bVel_des,     /// desired linear velocity in base frame
                   gv_.tail(12),                    /// joint velocity
                   phase;
           if (randStatFlag){
             std::uniform_real_distribution<double> randNorm(-1, 1);
             double eul[3] = {0};
             double quatArr[4] = {0};
-            raisim::Vec<4> quat;
             raisim::Vec<3> rpyVec;
             raisim::Mat<3, 3> rotNoisy{};
             for(int i=0;i<4;i++) quatArr[i] = gc_[3+i];
@@ -414,9 +408,18 @@ namespace raisim {
                                      robot_->getFrameIdxByName("FL_foot_fixed"),
                                      robot_->getFrameIdxByName("RR_foot_fixed"),
                                      robot_->getFrameIdxByName("RL_foot_fixed")};
-          for (int i = 0; i < 4; i++) {
-            robot_->getFrameVelocity(footFrameIdxs[i], endVel);
-            sum += spdRwdWeight[i] * endVel.e().norm();
+          if (isnan(simulation_dt_)) {RSINFO("sim timestep is Nan.")}
+          if (isinf(simulation_dt_)) {RSINFO("sim timestep is Inf.")}
+          for (auto &contact: a1_->getContacts()) {
+            if (contact.skip()) continue; /// if the contact is internal, one contact point is set to 'skip'
+            for (int i = 0; i < 4; i++)
+              if (shankBodyIdxs[i] == contact.getlocalBodyIndex()) {
+                if (isnan(contact.getImpulse().e().norm())) {RSINFO("Foot Vel "<<i<<" is Nan.")}
+                if (isinf(contact.getImpulse().e().norm())) {RSINFO("Foot Vel "<<i<<" is Inf.")}
+                if (isnan(frcRwdWeight[i])) {RSINFO("Vel Rwd Weight "<<i<<" is Nan.")}
+                if (isinf(frcRwdWeight[i])) {RSINFO("Vel Rwd Weight "<<i<<" is Inf.")}
+                sum += frcRwdWeight[i] * contact.getImpulse().e().norm() / simulation_dt_;
+              }
           }
           return sum;
         }
@@ -451,6 +454,19 @@ namespace raisim {
           return ret;
         }
 
+        void quatToRotMat(const Vec4 &q, Mat3 &R) {
+          R(0,0) = q[0] * q[0] + q[1] * q[1] - q[2] * q[2] - q[3] * q[3];
+          R(0,1) = 2 * q[0] * q[3] + 2 * q[1] * q[2];
+          R(0,2) = 2 * q[1] * q[3] - 2 * q[0] * q[2];
+
+          R(1,0) = 2 * q[1] * q[2] - 2 * q[0] * q[3];
+          R(1,1) = q[0] * q[0] - q[1] * q[1] + q[2] * q[2] - q[3] * q[3];
+          R(1,2) = 2 * q[0] * q[1] + 2 * q[2] * q[3];
+
+          R(2,0) = 2 * q[0] * q[2] + 2 * q[1] * q[3];
+          R(2,1) = 2 * q[2] * q[3] - 2 * q[0] * q[1];
+          R(2,2) = q[0] * q[0] - q[1] * q[1] - q[2] * q[2] + q[3] * q[3];
+        }
 
     private:
         int gcDim_, gvDim_, nJoints_;

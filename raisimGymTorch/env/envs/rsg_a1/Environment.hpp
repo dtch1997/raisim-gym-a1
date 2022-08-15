@@ -397,12 +397,20 @@ namespace raisim {
                                      a1_->getBodyIdx("FL_calf"),
                                      a1_->getBodyIdx("RR_calf"),
                                      a1_->getBodyIdx("RL_calf")};
+          if (isnan(simulation_dt_)) {RSINFO("sim timestep is Nan.")}
+          if (isinf(simulation_dt_)) {RSINFO("sim timestep is Inf.")}
           for (auto &contact: a1_->getContacts()) {
             if (contact.skip()) continue; /// if the contact is internal, one contact point is set to 'skip'
             for (int i = 0; i < 4; i++)
-              if (shankBodyIdxs[i] == contact.getlocalBodyIndex())
+              if (shankBodyIdxs[i] == contact.getlocalBodyIndex()) {
+                if (isnan(contact.getImpulse().e().norm())) {RSINFO("Foot Vel "<<i<<" is Nan.")}
+                if (isinf(contact.getImpulse().e().norm())) {RSINFO("Foot Vel "<<i<<" is Inf.")}
+                if (isnan(frcRwdWeight[i])) {RSINFO("Vel Rwd Weight "<<i<<" is Nan.")}
+                if (isinf(frcRwdWeight[i])) {RSINFO("Vel Rwd Weight "<<i<<" is Inf.")}
                 sum += frcRwdWeight[i] * contact.getImpulse().e().norm() / simulation_dt_;
+              }
           }
+
           return sum;
 
         }
